@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Life RPG</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Life RPG">
+<meta name="theme-color" content="#10152A">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%2310152A'/%3E%3Ctext x='50' y='62' font-size='50' text-anchor='middle'%3E%E2%9A%94%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  html, body { background: var(--ink, #10152A); min-height: 100vh; }
+  :root {
+    --ink: #10152A;
+    --panel: #1A2140;
+    --panel-hi: #232C52;
+    --line: #2E375E;
+    --text: #EDEFF7;
+    --muted: #8891B0;
+    --gold: #E3A73E;
+    --gold-dim: #6B5427;
+    --teal: #3FB6A8;
+    --teal-dim: #1F4842;
+    --coral: #E4665A;
+    --coral-dim: #4A2622;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: transparent; color: var(--text); font-family: 'Inter', sans-serif; }
+  #app { max-width: 880px; margin: 0 auto; padding: 20px 16px 40px; }
+
+  .hud-title { font-family: 'Space Grotesk', sans-serif; font-weight: 700; letter-spacing: 0.02em; }
+  h1.hud-title { font-size: 22px; margin: 0 0 2px; }
+  .sub { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+
+  .level-block { display: flex; align-items: center; gap: 16px; }
+  .level-ring {
+    width: 74px; height: 74px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: conic-gradient(var(--gold) calc(var(--pct, 0) * 1%), var(--panel-hi) 0);
+    flex-shrink: 0;
+  }
+  .level-ring-inner {
+    width: 60px; height: 60px; border-radius: 50%;
+    background: var(--panel); display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+  .level-num { font-family: 'Space Grotesk'; font-weight: 700; font-size: 20px; line-height: 1; }
+  .level-label { font-size: 9px; color: var(--muted); letter-spacing: 0.08em; margin-top: 2px; }
+  .xp-line { flex: 1; }
+  .xp-track { height: 8px; background: var(--panel-hi); border-radius: 5px; overflow: hidden; margin-top: 6px; }
+  .xp-fill { height: 100%; background: linear-gradient(90deg, var(--gold-dim), var(--gold)); border-radius: 5px; transition: width .4s ease; }
+  .xp-text { font-family: 'IBM Plex Mono'; font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  .stat-grid { display: grid; gap: 10px; }
+  .stat-row { display: grid; grid-template-columns: 28px 96px 1fr 40px; align-items: center; gap: 10px; }
+  .stat-icon { font-size: 16px; text-align: center; }
+  .stat-name { font-size: 12px; color: var(--muted); font-family: 'IBM Plex Mono'; }
+  .stat-track { height: 7px; background: var(--panel-hi); border-radius: 4px; overflow: hidden; }
+  .stat-fill { height: 100%; border-radius: 4px; }
+  .stat-val { font-family: 'IBM Plex Mono'; font-size: 11px; color: var(--muted); text-align: right; }
+
+  .mode-toggle { display: flex; gap: 8px; margin-bottom: 14px; }
+  .mode-btn {
+    flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--panel-hi); color: var(--muted); font-family: 'Space Grotesk'; font-weight: 600;
+    font-size: 13px; cursor: pointer; text-align: center; transition: all .15s ease;
+  }
+  .mode-btn.active-day { background: linear-gradient(135deg, var(--gold-dim), transparent); color: var(--gold); border-color: var(--gold); }
+  .mode-btn.active-night { background: linear-gradient(135deg, var(--teal-dim), transparent); color: var(--teal); border-color: var(--teal); }
+
+  .quest { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .quest:last-child { border-bottom: none; }
+  .quest input[type=checkbox] { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--gold); cursor: pointer; flex-shrink: 0; }
+  .quest-body { flex: 1; }
+  .quest-title { font-size: 13.5px; font-weight: 500; }
+  .quest-extra { display: flex; gap: 8px; margin-top: 6px; align-items: center; flex-wrap: wrap; }
+  .quest-extra input[type=number] {
+    width: 60px; background: var(--panel-hi); border: 1px solid var(--line); color: var(--text);
+    border-radius: 6px; padding: 5px 6px; font-family: 'IBM Plex Mono'; font-size: 12px;
+  }
+  .quest-extra label { font-size: 11px; color: var(--muted); }
+
+  .crunch-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding: 8px 10px; background: var(--coral-dim); border-radius: 8px; }
+  .crunch-row input { accent-color: var(--coral); }
+  .crunch-row span { font-size: 12px; color: #F3C9C4; }
+
+  .date-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+  .date-row input[type=date] {
+    background: var(--panel-hi); border: 1px solid var(--line); color: var(--text);
+    border-radius: 8px; padding: 8px 10px; font-family: 'IBM Plex Mono'; font-size: 13px;
+  }
+  .today-btn { background: var(--panel-hi); border: 1px solid var(--line); color: var(--teal); border-radius: 8px; padding: 8px 10px; font-size: 12px; cursor: pointer; font-family: 'Space Grotesk'; font-weight: 600; }
+  .day-xp-badge { margin-left: auto; font-family: 'IBM Plex Mono'; font-size: 13px; color: var(--gold); }
+  .saved-tick { font-size: 11px; color: var(--teal); min-height: 16px; margin-top: 8px; font-family: 'Space Grotesk'; }
+
+  .strip-title { font-size: 12px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px; }
+  .strip { display: flex; gap: 6px; }
+  .tile {
+    flex: 1; aspect-ratio: 1; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; border: 1px solid var(--line); cursor: pointer; flex-direction: column; gap: 2px;
+  }
+  .tile span { font-size: 9px; color: inherit; opacity: 0.8; }
+  .tile-empty { background: var(--panel-hi); color: var(--muted); }
+  .tile-combo { background: linear-gradient(135deg, var(--gold-dim), var(--gold)); color: #241800; border-color: var(--gold); }
+  .tile-partial { background: var(--teal-dim); color: var(--teal); border-color: var(--teal); }
+  .tile-negative { background: var(--coral-dim); color: var(--coral); border-color: var(--coral); }
+  .tile-today { box-shadow: 0 0 0 2px var(--text) inset; }
+
+  button.primary {
+    width: 100%; padding: 13px; margin-top: 14px; border: none; border-radius: 10px;
+    background: linear-gradient(135deg, var(--gold), #C98A2A); color: #241800; font-family: 'Space Grotesk';
+    font-weight: 700; font-size: 14px; cursor: pointer; letter-spacing: 0.02em;
+  }
+  button.primary:active { transform: scale(0.99); }
+
+  .flash { text-align: center; font-size: 13px; color: var(--gold); margin-top: 10px; min-height: 18px; font-family: 'Space Grotesk'; font-weight: 600; }
+
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .field input[type=text], .field input[type=date], .field input[type=number] {
+    width: 100%; background: var(--panel-hi); border: 1px solid var(--line); color: var(--text);
+    border-radius: 8px; padding: 10px; font-family: 'Inter'; font-size: 13px;
+  }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .link-btn { background: none; border: none; color: var(--muted); font-size: 11px; text-decoration: underline; cursor: pointer; padding: 0; margin-top: 10px; }
+  .backup-box { margin-top: 14px; padding: 14px; background: var(--panel-hi); border-radius: 10px; border: 1px solid var(--line); }
+  .backup-box textarea {
+    width: 100%; min-height: 100px; background: var(--ink); border: 1px solid var(--line); color: var(--text);
+    border-radius: 8px; padding: 8px; font-family: 'IBM Plex Mono'; font-size: 11px; resize: vertical;
+  }
+  .backup-hint { font-size: 11.5px; color: var(--muted); margin: 6px 0 10px; }
+  .loading { text-align: center; color: var(--muted); padding: 40px 0; font-family: 'IBM Plex Mono'; }
+</style>
+
+</head>
+<body>
+<div id="app"><div class="loading">Loading your quest log…</div></div>
+
+<script>
+const STAT_META = [
+  { key: 'STR', icon: '💪', label: 'STR' },
+  { key: 'FOCUS', icon: '🧠', label: 'FOCUS' },
+  { key: 'DISCIPLINE', icon: '⏰', label: 'DISC' },
+  { key: 'ORDER', icon: '🏠', label: 'ORDER' },
+  { key: 'MIND', icon: '📚', label: 'MIND' },
+  { key: 'THESIS', icon: '📝', label: 'THESIS' },
+  { key: 'FUEL', icon: '🍽', label: 'FUEL' },
+];
+
+const LIFTS = [
+  { key: 'shrug', label: 'Barbell shrug', target: 150 },
+  { key: 'chinup', label: 'Weighted chin-up', target: 35 },
+  { key: 'flatpress', label: 'Flat dumbbell press', target: 46 },
+  { key: 'inclinepress', label: 'Incline dumbbell press', target: 42 },
+  { key: 'dip', label: 'Weighted dip', target: 40 },
+  { key: 'hammercurl', label: 'Hammer curl', target: 26 },
+  { key: 'ohp', label: 'Dumbbell overhead press', target: 36 },
+];
+
+let profile = null;
+let selectedDate = null;
+const app = document.getElementById('app');
+
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function daysBetween(a, b) { return Math.round((b - a) / 86400000); }
+function dateFromStr(s) { return new Date(s + 'T00:00:00'); }
+function shortDay(s) { return dateFromStr(s).toLocaleDateString(undefined, { weekday: 'short' }); }
+function shortDate(s) { const d = dateFromStr(s); return d.getDate(); }
+function sumObj(o) { return Object.values(o).reduce((a,b) => a + b, 0); }
+
+function last7Dates() {
+  const out = [];
+  const today = dateFromStr(todayStr());
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    out.push(d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'));
+  }
+  return out;
+}
+
+async function safeGet(key) {
+  try {
+    const v = localStorage.getItem(key);
+    return (v === null || v === '') ? null : v;
+  } catch (e) { return null; }
+}
+async function safeSet(key, value) {
+  try { localStorage.setItem(key, value); } catch (e) { console.error('storage set failed', key, e); }
+}
+
+async function loadProfile() {
+  const raw = await safeGet('lifeRPG:profile');
+  if (!raw) { renderSetup(); return; }
+  try { profile = JSON.parse(raw); } catch (e) { renderSetup(); return; }
+  selectedDate = todayStr();
+  renderDashboard();
+}
+
+function defaultProfile(data) {
+  const stats = {};
+  STAT_META.forEach(s => stats[s.key] = 0);
+  const gymCurrent = {};
+  LIFTS.forEach(l => gymCurrent[l.key] = 0);
+  return {
+    examDate: data.examDate,
+    seasonStart: todayStr(),
+    scrollBudget: data.scrollBudget,
+    gymTarget: data.gymTarget,
+    dissertationMin: data.dissertationMin,
+    mealsTarget: data.mealsTarget,
+    rewardLvl10: data.rewardLvl10,
+    rewardLvl25: data.rewardLvl25,
+    rewardSeason: data.rewardSeason,
+    totalXP: 0,
+    stats,
+    gymCurrent,
+    gymMastery: false,
+    mode: 'day',
+  };
+}
+
+function renderSetup() {
+  app.innerHTML = `
+    <h1 class="hud-title">⚔️ LIFE RPG — SEASON SETUP</h1>
+    <p class="sub">Answer these once. You can edit later.</p>
+    <div class="card">
+      <div class="field">
+        <label>Exam date (closest / final exam)</label>
+        <input type="date" id="f-exam">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Daily social media budget (minutes)</label>
+          <input type="number" id="f-scroll" placeholder="45">
+        </div>
+        <div class="field">
+          <label>Gym sessions per week</label>
+          <input type="number" id="f-gym" placeholder="4">
+        </div>
+      </div>
+      <div class="field">
+        <label>Dissertation — protected minimum per day, even in crunch (minutes)</label>
+        <input type="number" id="f-thesis" placeholder="20">
+      </div>
+      <div class="field">
+        <label>Meals per day target</label>
+        <input type="number" id="f-meals" placeholder="3">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Level 10 reward</label>
+          <input type="text" id="f-r10" placeholder="e.g. new trainers">
+        </div>
+        <div class="field">
+          <label>Level 25 reward</label>
+          <input type="text" id="f-r25" placeholder="e.g. day trip">
+        </div>
+      </div>
+      <div class="field">
+        <label>Season complete (day 90) reward</label>
+        <input type="text" id="f-rseason" placeholder="e.g. weekend away">
+      </div>
+      <button class="primary" id="setup-submit">Start the season</button>
+    </div>
+  `;
+  document.getElementById('setup-submit').onclick = async () => {
+    const data = {
+      examDate: document.getElementById('f-exam').value || null,
+      scrollBudget: document.getElementById('f-scroll').value || '45',
+      gymTarget: document.getElementById('f-gym').value || '4',
+      dissertationMin: document.getElementById('f-thesis').value || '20',
+      mealsTarget: document.getElementById('f-meals').value || '3',
+      rewardLvl10: document.getElementById('f-r10').value || 'a reward you choose',
+      rewardLvl25: document.getElementById('f-r25').value || 'a reward you choose',
+      rewardSeason: document.getElementById('f-rseason').value || 'a reward you choose',
+    };
+    profile = defaultProfile(data);
+    await safeSet('lifeRPG:profile', JSON.stringify(profile));
+    selectedDate = todayStr();
+    renderDashboard();
+  };
+}
+
+function inExamWindowForDate(dateStr) {
+  if (!profile.examDate) return false;
+  const days = daysBetween(dateFromStr(dateStr), dateFromStr(profile.examDate));
+  return days >= 0 && days <= 30;
+}
+
+function computeSTR() {
+  if (!profile.gymCurrent) return 0;
+  let total = 0;
+  LIFTS.forEach(l => { total += Math.min(100, ((profile.gymCurrent[l.key] || 0) / l.target) * 100); });
+  return Math.round(total / LIFTS.length);
+}
+
+function renderLiftRows() {
+  return LIFTS.map(l => {
+    const cur = (profile.gymCurrent && profile.gymCurrent[l.key]) || 0;
+    const pct = Math.round(Math.min(100, (cur / l.target) * 100));
+    return `
+      <div class="quest">
+        <div class="quest-body">
+          <div class="quest-title">${l.label} — target ${l.target}kg (${pct}% there)</div>
+          <div class="quest-extra">
+            <label>Highest so far (kg):</label>
+            <input type="number" step="0.5" min="0" class="lift-input" data-key="${l.key}" data-target="${l.target}" value="${cur}">
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function attachLiftHandlers() {
+  const btn = document.getElementById('save-lifts-btn');
+  if (!btn) return;
+  btn.onclick = async () => {
+    const inputs = document.querySelectorAll('.lift-input');
+    let xpGained = 0;
+    let anyCapped = false;
+    let anyIncrease = false;
+    inputs.forEach(inp => {
+      const key = inp.dataset.key;
+      const target = parseFloat(inp.dataset.target);
+      const newVal = parseFloat(inp.value || '0');
+      const oldVal = (profile.gymCurrent[key] || 0);
+      const increase = newVal - oldVal;
+      if (increase > 0) {
+        anyIncrease = true;
+        const cap = target * 0.10;
+        const countedIncrease = Math.min(increase, cap);
+        if (increase > cap) anyCapped = true;
+        xpGained += Math.round((countedIncrease / target) * 300);
+      }
+      profile.gymCurrent[key] = newVal;
+    });
+    profile.totalXP = Math.max(0, profile.totalXP + xpGained);
+    const newSTR = computeSTR();
+    profile.stats.STR = newSTR;
+    if (newSTR >= 100) profile.gymMastery = true;
+    await safeSet('lifeRPG:profile', JSON.stringify(profile));
+    const flash = document.getElementById('lift-flash');
+    if (!anyIncrease) {
+      flash.textContent = 'No new records logged — numbers saved, no XP this time.';
+    } else {
+      flash.textContent = `+${xpGained} XP from real progress` + (anyCapped ? ' (one lift jumped more than 10% of target in one go — huge PR, but capped for fair XP)' : '') + (newSTR >= 100 ? ' — 🏆 GYM MASTERY reached!' : '');
+    }
+    setTimeout(() => renderDashboard(), 1400);
+  };
+}
+
+async function renderDashboard() {
+  if (!profile.gymCurrent) {
+    profile.gymCurrent = {};
+    LIFTS.forEach(l => profile.gymCurrent[l.key] = 0);
+    profile.gymMastery = false;
+    await safeSet('lifeRPG:profile', JSON.stringify(profile));
+  }
+  const level = Math.floor(profile.totalXP / 100) + 1;
+  const xpIntoLevel = profile.totalXP % 100;
+  const strValue = computeSTR();
+
+  const statRows = STAT_META.map(s => {
+    const raw = s.key === 'STR' ? strValue : (profile.stats[s.key] || 0);
+    const widthVal = Math.max(0, Math.min(100, raw));
+    const barColor = s.key === 'MIND' ? 'var(--gold)' : (raw < 0 ? 'var(--coral)' : 'var(--teal)');
+    return `
+      <div class="stat-row">
+        <div class="stat-icon">${s.icon}</div>
+        <div class="stat-name">${s.label}</div>
+        <div class="stat-track"><div class="stat-fill" style="width:${widthVal}%; background:${barColor}"></div></div>
+        <div class="stat-val">${raw}</div>
+      </div>`;
+  }).join('');
+
+  const dates = last7Dates();
+  const stripLogs = await Promise.all(dates.map(d => safeGet('lifeRPG:log:' + d)));
+  const today = todayStr();
+  const strip = dates.map((d, i) => {
+    const raw = stripLogs[i];
+    const isToday = d === today;
+    let cls = 'tile-empty', label = '';
+    if (raw) {
+      const entry = JSON.parse(raw);
+      if (entry.fullCombo) { cls = 'tile-combo'; label = '🔥'; }
+      else if (entry.totalGain < 0) { cls = 'tile-negative'; label = '−'; }
+      else { cls = 'tile-partial'; label = '·'; }
+    }
+    return `<div class="tile ${cls} ${isToday ? 'tile-today' : ''}" data-date="${d}">${label}<span>${shortDay(d)} ${shortDate(d)}</span></div>`;
+  }).join('');
+
+  const currentRaw = await safeGet('lifeRPG:log:' + selectedDate);
+  const currentLog = currentRaw ? JSON.parse(currentRaw) : null;
+  const formMode = (currentLog && currentLog.mode) || profile.mode || 'day';
+  const dayXP = currentLog ? currentLog.totalGain : 0;
+
+  app.innerHTML = `
+    <h1 class="hud-title">⚔️ LIFE RPG — SEASON TRACKER</h1>
+    <p class="sub">Keep showing up — that's the whole game.</p>
+
+    <div class="card">
+      <div class="level-block">
+        <div class="level-ring" style="--pct:${xpIntoLevel}">
+          <div class="level-ring-inner">
+            <div class="level-num">${level}</div>
+            <div class="level-label">LEVEL</div>
+          </div>
+        </div>
+        <div class="xp-line">
+          <div class="xp-text">${profile.totalXP} XP total</div>
+          <div class="xp-track"><div class="xp-fill" style="width:${xpIntoLevel}%"></div></div>
+          <div class="xp-text">${xpIntoLevel} / 100 to next level</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="stat-grid">${statRows}</div>
+      ${strValue >= 100 ? `<div style="margin-top:12px; padding:10px; background:var(--gold-dim); border-radius:8px; text-align:center; color:var(--gold); font-family:'Space Grotesk'; font-weight:700; font-size:13px;">🏆 GYM MASTERY — every target hit, max level reached</div>` : ''}
+    </div>
+
+    <div class="card">
+      <div class="strip-title">Personal bests — update whenever you hit a new record</div>
+      ${renderLiftRows()}
+      <button class="primary" id="save-lifts-btn">Update personal bests</button>
+      <div class="flash" id="lift-flash"></div>
+    </div>
+
+    <div class="card">
+      <div class="strip-title">Last 7 days — tap a day to view or edit it</div>
+      <div class="strip">${strip}</div>
+    </div>
+
+    <div class="card">
+      <div class="date-row">
+        <input type="date" id="date-picker" max="${today}" value="${selectedDate}">
+        ${selectedDate !== today ? `<button class="today-btn" id="jump-today">Back to today</button>` : ''}
+        <span class="day-xp-badge">${dayXP >= 0 ? '+' : ''}${dayXP} XP this day</span>
+      </div>
+      <div class="mode-toggle">
+        <div class="mode-btn ${formMode==='day'?'active-day':''}" id="mode-day">☀️ Day Mode</div>
+        <div class="mode-btn ${formMode==='night'?'active-night':''}" id="mode-night">🌙 Night Mode</div>
+      </div>
+      <div class="crunch-row">
+        <input type="checkbox" id="q-crunch" ${currentLog && currentLog.crunch ? 'checked' : ''}>
+        <span>Crunch day — protect only minimums (dissertation ${profile.dissertationMin}min, room 5min)</span>
+      </div>
+
+      <div class="quest">
+        <input type="checkbox" id="q-str" ${currentLog && currentLog.str ? 'checked' : ''}>
+        <div class="quest-body"><div class="quest-title">💪 Gym session done</div></div>
+      </div>
+      <div class="quest">
+        <input type="checkbox" id="q-focus" ${currentLog && currentLog.focus ? 'checked' : ''}>
+        <div class="quest-body">
+          <div class="quest-title">🧠 Stayed within ${profile.scrollBudget}min scroll budget</div>
+          <div class="quest-extra"><label>Dodges (urge, didn't open app):</label><input type="number" id="q-dodges" value="${currentLog ? currentLog.dodges : 0}" min="0"></div>
+        </div>
+      </div>
+      <div class="quest">
+        <input type="checkbox" id="q-discipline" ${currentLog && currentLog.discipline ? 'checked' : ''}>
+        <div class="quest-body"><div class="quest-title">⏰ On time today (or protected sleep window on a flip day)</div></div>
+      </div>
+      <div class="quest">
+        <input type="checkbox" id="q-order" ${currentLog && currentLog.order ? 'checked' : ''}>
+        <div class="quest-body"><div class="quest-title">🏠 Room reset done</div></div>
+      </div>
+      <div class="quest">
+        <input type="checkbox" id="q-mind" ${currentLog && currentLog.mind ? 'checked' : ''}>
+        <div class="quest-body">
+          <div class="quest-title">📚 Studied</div>
+          <div class="quest-extra"><label>Hours:</label><input type="number" id="q-mind-hrs" value="${currentLog ? currentLog.mindHrs : 0}" min="0" step="0.5"></div>
+        </div>
+      </div>
+      <div class="quest">
+        <input type="checkbox" id="q-thesis" ${currentLog && currentLog.thesis ? 'checked' : ''}>
+        <div class="quest-body">
+          <div class="quest-title">📝 Dissertation worked on</div>
+          <div class="quest-extra"><label>Minutes:</label><input type="number" id="q-thesis-min" value="${currentLog ? currentLog.thesisMin : 0}" min="0" step="5"></div>
+        </div>
+      </div>
+      <div class="quest">
+        <div class="quest-body">
+          <div class="quest-title">🍽 Calories: 2900–3000 target · Protein: 130g+ target</div>
+          <div class="quest-extra">
+            <label>Calories eaten:</label><input type="number" id="q-fuel-cal" value="${currentLog ? currentLog.fuelCal : 0}" min="0" step="10">
+            <label style="margin-left:10px;">Protein (g):</label><input type="number" id="q-fuel-protein" value="${currentLog ? currentLog.fuelProtein : 0}" min="0" step="1">
+          </div>
+        </div>
+      </div>
+      <div class="saved-tick" id="saved-tick"></div>
+    </div>
+
+    <button class="link-btn" id="edit-setup">Edit setup / rewards</button>
+    <button class="link-btn" id="backup-btn" style="margin-left:16px;">Backup my data</button>
+    <button class="link-btn" id="restore-btn" style="margin-left:16px;">Restore from backup</button>
+    <button class="link-btn" id="reset-data" style="margin-left:16px; color:var(--coral)">Reset all data</button>
+    <div id="backup-panel"></div>
+  `;
+
+  document.getElementById('edit-setup').onclick = renderEditSetup;
+  document.getElementById('backup-btn').onclick = showBackupPanel;
+  document.getElementById('restore-btn').onclick = showRestorePanel;
+  document.getElementById('reset-data').onclick = async () => {
+    if (confirm('This clears your whole season. Are you sure?')) {
+      await safeSet('lifeRPG:profile', '');
+      profile = null;
+      renderSetup();
+    }
+  };
+  attachLiftHandlers();
+  attachStripHandlers();
+  attachQuestFormHandlers(formMode);
+}
+
+function attachStripHandlers() {
+  document.querySelectorAll('.tile[data-date]').forEach(t => {
+    t.onclick = () => { selectedDate = t.dataset.date; renderDashboard(); };
+  });
+}
+
+function attachQuestFormHandlers(formMode) {
+  const dp = document.getElementById('date-picker');
+  dp.onchange = () => { selectedDate = dp.value; renderDashboard(); };
+  const jumpBtn = document.getElementById('jump-today');
+  if (jumpBtn) jumpBtn.onclick = () => { selectedDate = todayStr(); renderDashboard(); };
+
+  document.getElementById('mode-day').onclick = () => recalcAndSave('day');
+  document.getElementById('mode-night').onclick = () => recalcAndSave('night');
+
+  const fieldIds = ['q-crunch','q-str','q-focus','q-dodges','q-discipline','q-order','q-mind','q-mind-hrs','q-thesis','q-thesis-min','q-fuel-cal','q-fuel-protein'];
+  fieldIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', () => recalcAndSave(formMode));
+  });
+}
+
+async function recalcAndSave(mode) {
+  const date = selectedDate;
+  const crunch = document.getElementById('q-crunch').checked;
+  const str = document.getElementById('q-str').checked;
+  const focus = document.getElementById('q-focus').checked;
+  const dodges = parseInt(document.getElementById('q-dodges').value || '0');
+  const discipline = document.getElementById('q-discipline').checked;
+  const order = document.getElementById('q-order').checked || crunch;
+  const mind = document.getElementById('q-mind').checked;
+  const mindHrs = parseFloat(document.getElementById('q-mind-hrs').value || '0');
+  const thesis = document.getElementById('q-thesis').checked || crunch;
+  const thesisMin = crunch ? Math.max(parseInt(document.getElementById('q-thesis-min').value||'0'), profile.dissertationMin) : parseInt(document.getElementById('q-thesis-min').value || '0');
+  const fuelCal = parseFloat(document.getElementById('q-fuel-cal').value || '0');
+  const fuelProtein = parseFloat(document.getElementById('q-fuel-protein').value || '0');
+
+  const inExamWindow = inExamWindowForDate(date);
+  const xpBreakdown = { FOCUS:0, DISCIPLINE:0, ORDER:0, MIND:0, THESIS:0, FUEL:0 };
+  if (focus) xpBreakdown.FOCUS += 10;
+  xpBreakdown.FOCUS += Math.min(dodges, 5) * 2;
+  if (discipline) xpBreakdown.DISCIPLINE += 10;
+  if (order) xpBreakdown.ORDER += 10;
+  if (mind) {
+    xpBreakdown.MIND += 10;
+    const bonus = inExamWindow ? mindHrs * 5 : Math.min(mindHrs * 3, 20);
+    xpBreakdown.MIND += Math.round(bonus);
+  }
+  if (thesis) {
+    xpBreakdown.THESIS += 10;
+    xpBreakdown.THESIS += Math.min(Math.floor(thesisMin / 30) * 5, 20);
+  }
+  const calOk = fuelCal >= 2900 && fuelCal <= 3000;
+  const proteinOk = fuelProtein >= 130;
+  xpBreakdown.FUEL += calOk ? 10 : -10;
+  xpBreakdown.FUEL += proteinOk ? 10 : -10;
+  const fuelOk = calOk && proteinOk;
+
+  const flatBonus = str ? 10 : 0;
+  const fullCombo = str && focus && discipline && order && mind && thesis && fuelOk;
+  const comboBonus = fullCombo ? 15 : 0;
+  const totalNew = sumObj(xpBreakdown) + flatBonus + comboBonus;
+
+  const oldRaw = await safeGet('lifeRPG:log:' + date);
+  const old = oldRaw ? JSON.parse(oldRaw) : null;
+  const oldBreakdown = (old && old.xpBreakdown) || { FOCUS:0, DISCIPLINE:0, ORDER:0, MIND:0, THESIS:0, FUEL:0 };
+  const oldTotal = old ? old.totalGain : 0;
+
+  Object.keys(xpBreakdown).forEach(k => {
+    profile.stats[k] = (profile.stats[k] || 0) + (xpBreakdown[k] - oldBreakdown[k]);
+  });
+  profile.totalXP = Math.max(0, profile.totalXP + (totalNew - oldTotal));
+  profile.mode = mode;
+
+  const logEntry = { date, mode, crunch, str, focus, dodges, discipline, order, mind, mindHrs, thesis, thesisMin, fuelCal, fuelProtein, fuelOk, fullCombo, xpBreakdown, flatBonus, totalGain: totalNew };
+  await safeSet('lifeRPG:log:' + date, JSON.stringify(logEntry));
+  await safeSet('lifeRPG:profile', JSON.stringify(profile));
+
+  renderDashboard();
+}
+
+async function gatherAllData() {
+  const bundle = { profile: profile, logs: {} };
+  const dates = last7Dates();
+  for (const d of dates) {
+    const raw = await safeGet('lifeRPG:log:' + d);
+    if (raw) bundle.logs[d] = JSON.parse(raw);
+  }
+  return bundle;
+}
+
+async function showBackupPanel() {
+  const bundle = await gatherAllData();
+  const json = JSON.stringify(bundle, null, 2);
+  const panel = document.getElementById('backup-panel');
+  panel.innerHTML = `
+    <div class="backup-box">
+      <div class="backup-hint">Copy this and save it somewhere safe (Notes app, email to yourself, etc). To restore later, paste it back using "Restore from backup". Note: this bundles the last 7 logged days plus your profile — for full history, back up regularly.</div>
+      <textarea id="backup-text" readonly>${json}</textarea>
+      <button class="primary" id="copy-backup-btn" style="margin-top:8px;">Copy to clipboard</button>
+      <div class="flash" id="backup-flash"></div>
+    </div>
+  `;
+  const ta = document.getElementById('backup-text');
+  ta.focus(); ta.select();
+  document.getElementById('copy-backup-btn').onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(json);
+      document.getElementById('backup-flash').textContent = 'Copied — paste it somewhere safe.';
+    } catch (e) {
+      ta.select();
+      document.execCommand('copy');
+      document.getElementById('backup-flash').textContent = 'Copied — paste it somewhere safe.';
+    }
+  };
+}
+
+function showRestorePanel() {
+  const panel = document.getElementById('backup-panel');
+  panel.innerHTML = `
+    <div class="backup-box">
+      <div class="backup-hint">Paste a backup you saved earlier. This replaces your current data.</div>
+      <textarea id="restore-text" placeholder="Paste your backup JSON here"></textarea>
+      <button class="primary" id="do-restore-btn" style="margin-top:8px;">Restore</button>
+      <div class="flash" id="restore-flash"></div>
+    </div>
+  `;
+  document.getElementById('do-restore-btn').onclick = async () => {
+    const raw = document.getElementById('restore-text').value.trim();
+    try {
+      const bundle = JSON.parse(raw);
+      if (!bundle.profile) throw new Error('missing profile');
+      await safeSet('lifeRPG:profile', JSON.stringify(bundle.profile));
+      const logs = bundle.logs || {};
+      for (const d of Object.keys(logs)) {
+        await safeSet('lifeRPG:log:' + d, JSON.stringify(logs[d]));
+      }
+      document.getElementById('restore-flash').textContent = 'Restored! Reloading...';
+      setTimeout(() => loadProfile(), 700);
+    } catch (e) {
+      document.getElementById('restore-flash').textContent = "That didn't look like a valid backup — check you copied the whole thing.";
+    }
+  };
+}
+
+function renderEditSetup() {
+  app.innerHTML = `
+    <h1 class="hud-title">⚔️ EDIT SETUP</h1>
+    <div class="card">
+      <div class="field"><label>Exam date</label><input type="date" id="e-exam" value="${profile.examDate||''}"></div>
+      <div class="field-row">
+        <div class="field"><label>Scroll budget (min)</label><input type="number" id="e-scroll" value="${profile.scrollBudget}"></div>
+        <div class="field"><label>Gym target /week</label><input type="number" id="e-gym" value="${profile.gymTarget}"></div>
+      </div>
+      <div class="field"><label>Dissertation protected minimum (min)</label><input type="number" id="e-thesis" value="${profile.dissertationMin}"></div>
+      <div class="field"><label>Meals target</label><input type="number" id="e-meals" value="${profile.mealsTarget}"></div>
+      <div class="field-row">
+        <div class="field"><label>Level 10 reward</label><input type="text" id="e-r10" value="${profile.rewardLvl10}"></div>
+        <div class="field"><label>Level 25 reward</label><input type="text" id="e-r25" value="${profile.rewardLvl25}"></div>
+      </div>
+      <div class="field"><label>Season reward</label><input type="text" id="e-rseason" value="${profile.rewardSeason}"></div>
+      <button class="primary" id="save-edit">Save</button>
+      <button class="link-btn" id="cancel-edit">Back to dashboard</button>
+    </div>
+  `;
+  document.getElementById('save-edit').onclick = async () => {
+    profile.examDate = document.getElementById('e-exam').value || null;
+    profile.scrollBudget = document.getElementById('e-scroll').value;
+    profile.gymTarget = document.getElementById('e-gym').value;
+    profile.dissertationMin = document.getElementById('e-thesis').value;
+    profile.mealsTarget = document.getElementById('e-meals').value;
+    profile.rewardLvl10 = document.getElementById('e-r10').value;
+    profile.rewardLvl25 = document.getElementById('e-r25').value;
+    profile.rewardSeason = document.getElementById('e-rseason').value;
+    await safeSet('lifeRPG:profile', JSON.stringify(profile));
+    renderDashboard();
+  };
+  document.getElementById('cancel-edit').onclick = renderDashboard;
+}
+
+loadProfile();
+</script>
+</body>
+</html>
